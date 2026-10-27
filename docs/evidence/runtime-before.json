@@ -1,0 +1,29 @@
+{
+  "/healthz": 200,
+  "/readyz": 200,
+  "/openapi.json": 200,
+  "/api/summary": 200,
+  "job": {
+    "id": "33dfeb2d-7291-40b3-bf21-7cf7e796d5a5",
+    "tenant": "factory-a",
+    "label": "配布版の永続化検査",
+    "status": "completed",
+    "attempts": 1,
+    "version": 3,
+    "row_count": 1,
+    "issues": [],
+    "message": "",
+    "created_at": "2026-10-27T05:46:39.466225Z",
+    "updated_at": "2026-10-27T05:46:39.727340Z"
+  },
+  "summary": {
+    "cancelled": 0,
+    "catalog_value": "136810",
+    "completed": 2,
+    "failed": 0,
+    "products": 4,
+    "queued": 0,
+    "rejected": 1,
+    "running": 0
+  }
+}

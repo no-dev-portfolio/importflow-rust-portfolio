@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-27",
+  "version": "1.0.0",
+  "rust_tests": 25,
+  "unit_and_property": 9,
+  "postgres_integration": 16,
+  "failed": 0,
+  "ignored": 0,
+  "frontend_tests": 3,
+  "repeated_lease_tests": 3,
+  "repetitions_each": 3,
+  "commands_exit_zero": [
+    "scripts/check.sh",
+    "cargo build --locked",
+    "npm run build",
+    "npm test",
+    "npm audit",
+    "docker demo build",
+    "docker verify build",
+    "health at port 9090"
+  ],
+  "unfiltered_cargo_audit_vulnerabilities": 1,
+  "audit_exception": "RUSTSEC-2023-0071, guarded by active dependency graph",
+  "github_published": false,
+  "cloud_deployed": false
+}

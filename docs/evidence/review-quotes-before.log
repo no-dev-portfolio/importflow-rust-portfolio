@@ -1,0 +1,22 @@
+   Compiling importflow v1.0.0 (/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 2.82s
+     Running unittests src/lib.rs (target/debug/deps/importflow-e532c81dc2800da9)
+
+running 1 test
+test domain::tests::reject_bad_values ... FAILED
+
+failures:
+
+---- domain::tests::reject_bad_values stdout ----
+
+thread 'domain::tests::reject_bad_values' (218) panicked at src/domain.rs:221:13:
+AA,foo"bar,1,2
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    domain::tests::reject_bad_values
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `--lib`

@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "job_id": "33dfeb2d-7291-40b3-bf21-7cf7e796d5a5",
+  "summary": {
+    "cancelled": 0,
+    "catalog_value": "136810",
+    "completed": 2,
+    "failed": 0,
+    "products": 4,
+    "queued": 0,
+    "rejected": 1,
+    "running": 0
+  }
+}
