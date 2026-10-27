@@ -1,0 +1,302 @@
++ npm run build
+
+> importflow-ui@1.0.1 build
+> tsc --noEmit && node build.mjs
+
+npm notice
+npm notice New major version of npm available! 10.9.9 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
++ npm test
+
+> importflow-ui@1.0.1 test
+> node --test tests/*.test.mjs
+
+TAP version 13
+# Subtest: old response cannot replace a newer one
+ok 1 - old response cannot replace a newer one
+  ---
+  duration_ms: 0.420458
+  type: 'test'
+  ...
+# Subtest: scope change invalidates an in-flight response
+ok 2 - scope change invalidates an in-flight response
+  ---
+  duration_ms: 0.142166
+  type: 'test'
+  ...
+# Subtest: integer money beyond Number precision is formatted exactly
+ok 3 - integer money beyond Number precision is formatted exactly
+  ---
+  duration_ms: 16.676541
+  type: 'test'
+  ...
+# {
+#   "selectedRole": "demo-manager-b",
+#   "containsTenantAJob": false,
+#   "oldTenantReadsAfterSwitch": [],
+#   "requests": [
+#     {
+#       "path": "/api/summary",
+#       "tenant": "A",
+#       "afterSwitch": false
+#     },
+#     {
+#       "path": "/api/jobs",
+#       "tenant": "A",
+#       "afterSwitch": false
+#     },
+#     {
+#       "path": "/api/catalog",
+#       "tenant": "A",
+#       "afterSwitch": false
+#     },
+#     {
+#       "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+#       "tenant": "A",
+#       "afterSwitch": false
+#     },
+#     {
+#       "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+#       "tenant": "A",
+#       "afterSwitch": false
+#     },
+#     {
+#       "path": "/api/jobs/11111111-1111-4111-8111-111111111111/cancel",
+#       "tenant": "A",
+#       "afterSwitch": false
+#     },
+#     {
+#       "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+#       "tenant": "A",
+#       "afterSwitch": false
+#     },
+#     {
+#       "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+#       "tenant": "A",
+#       "afterSwitch": false
+#     },
+#     {
+#       "path": "/api/summary",
+#       "tenant": "B",
+#       "afterSwitch": true
+#     },
+#     {
+#       "path": "/api/jobs",
+#       "tenant": "B",
+#       "afterSwitch": true
+#     },
+#     {
+#       "path": "/api/catalog",
+#       "tenant": "B",
+#       "afterSwitch": true
+#     }
+#   ]
+# }
+# Subtest: tests/role-race.test.mjs
+ok 2 - tests/role-race.test.mjs
+  ---
+  duration_ms: 1222.295418
+  type: 'test'
+  ...
+1..4
+# tests 4
+# suites 0
+# pass 4
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1229.220501
++ REVIEW_OUTPUT=/evidence/ui-race-result-1.json node tests/role-race.test.mjs
+{
+  "selectedRole": "demo-manager-b",
+  "containsTenantAJob": false,
+  "oldTenantReadsAfterSwitch": [],
+  "requests": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/cancel",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "B",
+      "afterSwitch": true
+    }
+  ]
+}
++ REVIEW_OUTPUT=/evidence/ui-race-result-2.json node tests/role-race.test.mjs
+{
+  "selectedRole": "demo-manager-b",
+  "containsTenantAJob": false,
+  "oldTenantReadsAfterSwitch": [],
+  "requests": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/cancel",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "B",
+      "afterSwitch": true
+    }
+  ]
+}
++ REVIEW_OUTPUT=/evidence/ui-race-result-3.json node tests/role-race.test.mjs
+{
+  "selectedRole": "demo-manager-b",
+  "containsTenantAJob": false,
+  "oldTenantReadsAfterSwitch": [],
+  "requests": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/cancel",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "B",
+      "afterSwitch": true
+    }
+  ]
+}
++ npm audit
+found 0 vulnerabilities

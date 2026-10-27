@@ -1,0 +1,77 @@
++ cp -a /review/. /app/
++ cargo test --locked --test integration review_claim_skips_locked_exhausted_job -- --nocapture
+   Compiling importflow v1.0.0 (/app)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 3.01s
+     Running tests/integration.rs (target/debug/deps/integration-c29e17e538c1120f)
+
+running 1 test
+claim_completed=false elapsed_ms=355 unrelated_ready_status=queued
+after_lock_release_claimed_ready_job=true
+
+thread 'review_claim_skips_locked_exhausted_job' (190) panicked at tests/integration.rs:123:5:
+claim blocked behind a locked exhausted job instead of claiming unrelated queued work
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test review_claim_skips_locked_exhausted_job ... FAILED
+
+failures:
+
+failures:
+    review_claim_skips_locked_exhausted_job
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.58s
+
+error: test failed, to rerun pass `--test integration`
+ATTEMPT=1 EXIT_CODE=101
++ code=101
++ echo ATTEMPT=1 EXIT_CODE=101
++ [ 101 -ne 101 ]
++ cargo test --locked --test integration review_claim_skips_locked_exhausted_job -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running tests/integration.rs (target/debug/deps/integration-c29e17e538c1120f)
+
+running 1 test
+claim_completed=false elapsed_ms=352 unrelated_ready_status=queued
+after_lock_release_claimed_ready_job=true
+
+thread 'review_claim_skips_locked_exhausted_job' (204) panicked at tests/integration.rs:123:5:
+claim blocked behind a locked exhausted job instead of claiming unrelated queued work
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test review_claim_skips_locked_exhausted_job ... FAILED
+
+failures:
+
+failures:
+    review_claim_skips_locked_exhausted_job
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.54s
+
+error: test failed, to rerun pass `--test integration`
+ATTEMPT=2 EXIT_CODE=101
++ code=101
++ echo ATTEMPT=2 EXIT_CODE=101
++ [ 101 -ne 101 ]
++ cargo test --locked --test integration review_claim_skips_locked_exhausted_job -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.07s
+     Running tests/integration.rs (target/debug/deps/integration-c29e17e538c1120f)
+
+running 1 test
+claim_completed=false elapsed_ms=352 unrelated_ready_status=queued
+after_lock_release_claimed_ready_job=true
+
+thread 'review_claim_skips_locked_exhausted_job' (218) panicked at tests/integration.rs:123:5:
+claim blocked behind a locked exhausted job instead of claiming unrelated queued work
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test review_claim_skips_locked_exhausted_job ... FAILED
+
+failures:
+
+failures:
+    review_claim_skips_locked_exhausted_job
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 16 filtered out; finished in 0.55s
+
+error: test failed, to rerun pass `--test integration`
+ATTEMPT=3 EXIT_CODE=101
++ code=101
++ echo ATTEMPT=3 EXIT_CODE=101
++ [ 101 -ne 101 ]

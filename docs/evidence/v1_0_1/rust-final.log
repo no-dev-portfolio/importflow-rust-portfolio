@@ -1,0 +1,105 @@
++ export PATH=/tools:/usr/local/cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
++ cargo fmt
++ sh scripts/check.sh
++ : postgres://stockflow:local-demo-only@stockflow-db:5432/importflow?sslmode=disable
++ cargo fmt --check
++ cargo clippy --locked --all-targets -- -D warnings
+    Checking importflow v1.0.1 (/review)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.95s
++ cargo test --locked -- --test-threads=4
+   Compiling importflow v1.0.1 (/review)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 7.72s
+     Running unittests src/lib.rs (target/debug/deps/importflow-6e34ad0665e44c29)
+
+running 9 tests
+test domain::tests::quoted_name_and_crlf ... ok
+test domain::tests::headers_and_empty ... ok
+test domain::tests::sample_and_bom ... ok
+test domain::tests::submission_boundaries ... ok
+test domain::tests::reject_bad_values ... ok
+test health::tests::follows_port_and_address_family ... ok
+test health::tests::distinguishes_ready_and_unready ... ok
+test domain::tests::row_and_byte_limits ... ok
+test domain::tests::arbitrary_text_does_not_panic ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+     Running unittests src/main.rs (target/debug/deps/importflow-dff4604041eabe49)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/integration.rs (target/debug/deps/integration-af5551becf7b51ef)
+
+running 18 tests
+test existing_sku_rejects_new_rows_atomically ... ok
+test cancel_fences_running_worker ... ok
+test bad_csv_rolls_back_all ... ok
+test competing_batches_do_not_partially_import ... ok
+test expired_lease_fences_old_worker_and_recovers ... ok
+test expired_third_lease_becomes_failed ... ok
+test http_auth_json_and_graphql_isolation ... ok
+test http_media_size_pagination_and_schema ... ok
+test expired_cleanup_is_bounded_and_not_repeated ... ok
+test queue_capacity_and_replay_at_capacity ... ok
+test retry_backoff_and_exhaustion ... ok
+test parallel_workers_claim_once ... ok
+test lease_expires_while_waiting_catalog_lock ... ok
+test same_key_concurrently_creates_one_job ... ok
+test successful_import_and_replay ... ok
+test review_claim_skips_locked_exhausted_job ... ok
+test summary_money_is_exact_beyond_javascript_precision ... ok
+test tenant_roles_and_versions ... ok
+
+test result: ok. 18 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.23s
+
+   Doc-tests importflow
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
++ sh scripts/audit.sh
+warning: nothing to print.
+
+To find dependencies that require specific target platforms, try to use option `--target all` first, and then narrow your search scope accordingly.
+Lockfile-only exception: RUSTSEC-2023-0071 (rsa, unused MySQL driver).
+    Fetching advisory database from `https://github.com/RustSec/advisory-db.git`
+      Loaded 1378 security advisories (from /usr/local/cargo/advisory-db)
+    Updating crates.io index
+    Scanning Cargo.lock for vulnerabilities (296 crate dependencies)
++ cargo test --locked --test integration review_claim_skips_locked_exhausted_job -- --nocapture
+   Compiling importflow v1.0.1 (/review)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 4.12s
+     Running tests/integration.rs (target/debug/deps/integration-af5551becf7b51ef)
+
+running 1 test
+claim_completed=true elapsed_ms=1 unrelated_ready_status=running
+unrelated_job_claimed_while_locked=true expired_reaped_once_after_release=true
+test review_claim_skips_locked_exhausted_job ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.20s
+
++ cargo test --locked --test integration review_claim_skips_locked_exhausted_job -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.27s
+     Running tests/integration.rs (target/debug/deps/integration-af5551becf7b51ef)
+
+running 1 test
+claim_completed=true elapsed_ms=1 unrelated_ready_status=running
+unrelated_job_claimed_while_locked=true expired_reaped_once_after_release=true
+test review_claim_skips_locked_exhausted_job ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.24s
+
++ cargo test --locked --test integration review_claim_skips_locked_exhausted_job -- --nocapture
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.08s
+     Running tests/integration.rs (target/debug/deps/integration-af5551becf7b51ef)
+
+running 1 test
+claim_completed=true elapsed_ms=1 unrelated_ready_status=running
+unrelated_job_claimed_while_locked=true expired_reaped_once_after_release=true
+test review_claim_skips_locked_exhausted_job ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 17 filtered out; finished in 0.19s
+

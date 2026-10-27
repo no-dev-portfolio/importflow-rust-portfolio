@@ -1,0 +1,252 @@
+--- v1.0.0/src/store.rs
++++ v1.0.1/src/store.rs
+@@ -245,7 +245,9 @@
+     }
+     pub async fn claim(&self) -> Result<Option<Job>, Fault> {
+         let mut tx = self.pool.begin().await?;
+-        sqlx::query("WITH expired AS(UPDATE jobs SET status='failed',token=NULL,lease_until=NULL,version=version+1,message='処理期限切れが上限に達しました。',updated_at=clock_timestamp() WHERE status='running' AND lease_until<=clock_timestamp() AND attempts>=3 RETURNING tenant,id) INSERT INTO audit(tenant,job_id,action,actor) SELECT tenant,id,'failed','worker' FROM expired").execute(&mut *tx).await?;
++        // Recovery must not block every worker behind a busy expired job.
++        // Bound the batch and acquire only rows that can be locked immediately.
++        sqlx::query("WITH candidates AS(SELECT id FROM jobs WHERE status='running' AND lease_until<=clock_timestamp() AND attempts>=3 ORDER BY created_at,id FOR UPDATE SKIP LOCKED LIMIT 50), expired AS(UPDATE jobs j SET status='failed',token=NULL,lease_until=NULL,version=version+1,message='処理期限切れが上限に達しました。',updated_at=clock_timestamp() FROM candidates c WHERE j.id=c.id RETURNING j.tenant,j.id) INSERT INTO audit(tenant,job_id,action,actor) SELECT tenant,id,'failed','worker' FROM expired").execute(&mut *tx).await?;
+         let job:Option<Job>=sqlx::query_as("WITH candidate AS(SELECT id FROM jobs WHERE attempts<3 AND ((status='queued' AND next_attempt<=clock_timestamp()) OR (status='running' AND lease_until<=clock_timestamp())) ORDER BY created_at,id FOR UPDATE SKIP LOCKED LIMIT 1) UPDATE jobs j SET status='running',attempts=attempts+1,token=$1,lease_until=clock_timestamp()+interval '30 seconds',version=version+1,updated_at=clock_timestamp() FROM candidate WHERE j.id=candidate.id RETURNING j.*").bind(Uuid::new_v4()).fetch_optional(&mut *tx).await?;
+         if let Some(j) = &job {
+             event(&mut tx, &j.tenant, j.id, "claimed", "worker").await?;
+--- v1.0.0/web/app.tsx
++++ v1.0.1/web/app.tsx
+@@ -17,15 +17,50 @@
+ function Badge({status}:{status:string}){return <span className={'badge '+status}><i/>{names[status]||status}</span>}
+ function App(){
+  const[token,setToken]=useState('demo-manager-a');const[tab,setTab]=useState('overview');const[jobs,setJobs]=useState<Job[]>([]);const[products,setProducts]=useState<Product[]>([]);const[summary,setSummary]=useState<Summary|null>(null);const[error,setError]=useState('');const[busy,setBusy]=useState(false);const[open,setOpen]=useState(false);const[selected,setSelected]=useState<Job|null>(null);const[audits,setAudits]=useState<Audit[]>([]);const[filter,setFilter]=useState('all');
+- const roleEpoch=useRef(createEpoch());const epoch=useRef(createEpoch());const detailEpoch=useRef(createEpoch());const controller=useRef<AbortController|null>(null);const detailController=useRef<AbortController|null>(null);
++ const activeToken=useRef(token);const roleEpoch=useRef(createEpoch());const epoch=useRef(createEpoch());const detailEpoch=useRef(createEpoch());const controller=useRef<AbortController|null>(null);const detailController=useRef<AbortController|null>(null);
+  const write=token!=='demo-viewer-a';const manager=token.startsWith('demo-manager');
+- async function load(){const ticket=epoch.current.next();controller.current?.abort();const c=new AbortController();controller.current=c;try{const[s,j,p]=await Promise.all([api<Summary>(token,'/summary',{},c.signal),api<{data:Job[]}>(token,'/jobs',{},c.signal),api<{data:Product[]}>(token,'/catalog',{},c.signal)]);if(epoch.current.isCurrent(ticket)){setSummary(s);setJobs(j.data);setProducts(p.data);setError('');}}catch(e){if(epoch.current.isCurrent(ticket)&&!c.signal.aborted)setError(e instanceof Error?e.message:'接続を確認してください。');}}
++ async function load(scope=token,roleTicket=roleEpoch.current.current()){
++  // A stale closure must not invalidate the current user's read generation.
++  if(activeToken.current!==scope||!roleEpoch.current.isCurrent(roleTicket))return;
++  const ticket=epoch.current.next();
++  controller.current?.abort();
++  const c=new AbortController();controller.current=c;
++  try{
++   const[s,j,p]=await Promise.all([
++    api<Summary>(scope,'/summary',{},c.signal),
++    api<{data:Job[]}>(scope,'/jobs',{},c.signal),
++    api<{data:Product[]}>(scope,'/catalog',{},c.signal)
++   ]);
++   if(activeToken.current===scope&&roleEpoch.current.isCurrent(roleTicket)&&epoch.current.isCurrent(ticket)){
++    setSummary(s);setJobs(j.data);setProducts(p.data);setError('');
++   }
++  }catch(e){
++   if(activeToken.current===scope&&roleEpoch.current.isCurrent(roleTicket)&&epoch.current.isCurrent(ticket)&&!c.signal.aborted)
++    setError(e instanceof Error?e.message:'接続を確認してください。');
++  }
++ }
+  useEffect(()=>{void load();const timer=setInterval(()=>void load(),3000);return()=>{clearInterval(timer);epoch.current.next();controller.current?.abort();};},[token]);
+- function role(value:string){roleEpoch.current.next();epoch.current.next();detailEpoch.current.next();controller.current?.abort();detailController.current?.abort();setToken(value);setSelected(null);setAudits([]);setJobs([]);setProducts([]);setSummary(null);setOpen(false);setError('');setBusy(false);}
+- async function detail(job:Job){const ticket=detailEpoch.current.next();detailController.current?.abort();const c=new AbortController();detailController.current=c;setSelected(job);setAudits([]);try{const[current,audit]=await Promise.all([api<Job>(token,'/jobs/'+job.id,{},c.signal),api<Audit[]>(token,'/jobs/'+job.id+'/audit',{},c.signal)]);if(detailEpoch.current.isCurrent(ticket)){setSelected(current);setAudits(audit);}}catch(e){if(detailEpoch.current.isCurrent(ticket)&&!c.signal.aborted)setError(String(e));}}
+- async function command(job:Job,name:string){const scope=token;const roleTicket=roleEpoch.current.current();const ticket=detailEpoch.current.current();setBusy(true);try{const result=await api<Job>(scope,`/jobs/${job.id}/${name}`,{method:'POST',body:JSON.stringify({version:job.version})});if(detailEpoch.current.isCurrent(ticket)){await detail(result);await load();}}catch(e){if(detailEpoch.current.isCurrent(ticket))setError(e instanceof Error?e.message:'操作に失敗しました。');}finally{if(roleEpoch.current.isCurrent(roleTicket))setBusy(false);}}
++ function role(value:string){activeToken.current=value;roleEpoch.current.next();epoch.current.next();detailEpoch.current.next();controller.current?.abort();detailController.current?.abort();setToken(value);setSelected(null);setAudits([]);setJobs([]);setProducts([]);setSummary(null);setOpen(false);setError('');setBusy(false);}
++ async function detail(job:Job){if(activeToken.current!==token)return;const ticket=detailEpoch.current.next();detailController.current?.abort();const c=new AbortController();detailController.current=c;setSelected(job);setAudits([]);try{const[current,audit]=await Promise.all([api<Job>(token,'/jobs/'+job.id,{},c.signal),api<Audit[]>(token,'/jobs/'+job.id+'/audit',{},c.signal)]);if(detailEpoch.current.isCurrent(ticket)){setSelected(current);setAudits(audit);}}catch(e){if(detailEpoch.current.isCurrent(ticket)&&!c.signal.aborted)setError(String(e));}}
++ async function command(job:Job,name:string){
++  const scope=token;const roleTicket=roleEpoch.current.current();const ticket=detailEpoch.current.current();
++  setBusy(true);
++  try{
++   const result=await api<Job>(scope,`/jobs/${job.id}/${name}`,{method:'POST',body:JSON.stringify({version:job.version})});
++   if(activeToken.current===scope&&roleEpoch.current.isCurrent(roleTicket)&&detailEpoch.current.isCurrent(ticket)){
++    await detail(result);
++    // detail() may return after a role switch aborts its reads.
++    if(!roleEpoch.current.isCurrent(roleTicket)||activeToken.current!==scope)return;
++    await load(scope,roleTicket);
++   }
++  }catch(e){
++   if(detailEpoch.current.isCurrent(ticket))setError(e instanceof Error?e.message:'操作に失敗しました。');
++  }finally{
++   if(roleEpoch.current.isCurrent(roleTicket))setBusy(false);
++  }
++ }
+  const displayed=jobs.filter(j=>filter==='all'||j.status===filter);
+- return <div className="app"><aside><a className="brand" href="/" aria-label="ImportFlow ホーム"><span className="logo">if</span>ImportFlow</a><span className="workspace-label">WORKSPACE</span><div className="workspace"><span className="workspace-mark">N</span><div>北関東ファクトリー<small>架空データ専用デモ</small></div></div><nav>{[['overview','▦','ダッシュボード'],['jobs','↳','取込ジョブ'],['catalog','▤','商品カタログ'],['guide','⌘','API・使い方']].map(([id,icon,name])=><button className={tab===id?'active':''} key={id} onClick={()=>setTab(id)}><span>{icon}</span>{name}{id==='jobs'&&summary&&<b>{summary.queued+summary.running}</b>}</button>)}</nav><div className="sidebar-note"><span className="dot"/>LOCAL DEMO<small>Rust + Tokio + PostgreSQL<br/>データを安全に、次の工程へ。</small></div><footer>ImportFlow <span>v1.0.0</span></footer></aside><main><header><div>ワークスペース <span>/</span> {token==='demo-manager-b'?'別組織':'データ取込'}</div><label className="role">デモ利用者<select aria-label="デモ利用者" value={token} onChange={e=>role(e.target.value)}><option value="demo-manager-a">管理者 A</option><option value="demo-operator-a">操作担当 A</option><option value="demo-viewer-a">閲覧担当 A</option><option value="demo-manager-b">別組織 管理者 B</option></select></label></header><section className="content"><div className="title-row"><div><div className="eyebrow">DATA OPERATIONS</div><h1>{tab==='catalog'?'商品カタログ':tab==='jobs'?'取込ジョブ':tab==='guide'?'API・使い方':'取込ワークスペース'}</h1><p>CSVの受付から検証、取込まで。処理の状況をひとつの画面で。</p></div>{write&&<button className="primary" onClick={()=>setOpen(true)}>＋ CSV取込を作成</button>}</div>{error&&<div className="alert" role="alert">{error}<button onClick={()=>setError('')}>閉じる</button></div>}
++ return <div className="app"><aside><a className="brand" href="/" aria-label="ImportFlow ホーム"><span className="logo">if</span>ImportFlow</a><span className="workspace-label">WORKSPACE</span><div className="workspace"><span className="workspace-mark">N</span><div>北関東ファクトリー<small>架空データ専用デモ</small></div></div><nav>{[['overview','▦','ダッシュボード'],['jobs','↳','取込ジョブ'],['catalog','▤','商品カタログ'],['guide','⌘','API・使い方']].map(([id,icon,name])=><button className={tab===id?'active':''} key={id} onClick={()=>setTab(id)}><span>{icon}</span>{name}{id==='jobs'&&summary&&<b>{summary.queued+summary.running}</b>}</button>)}</nav><div className="sidebar-note"><span className="dot"/>LOCAL DEMO<small>Rust + Tokio + PostgreSQL<br/>データを安全に、次の工程へ。</small></div><footer>ImportFlow <span>v1.0.1</span></footer></aside><main><header><div>ワークスペース <span>/</span> {token==='demo-manager-b'?'別組織':'データ取込'}</div><label className="role">デモ利用者<select aria-label="デモ利用者" value={token} onChange={e=>role(e.target.value)}><option value="demo-manager-a">管理者 A</option><option value="demo-operator-a">操作担当 A</option><option value="demo-viewer-a">閲覧担当 A</option><option value="demo-manager-b">別組織 管理者 B</option></select></label></header><section className="content"><div className="title-row"><div><div className="eyebrow">DATA OPERATIONS</div><h1>{tab==='catalog'?'商品カタログ':tab==='jobs'?'取込ジョブ':tab==='guide'?'API・使い方':'取込ワークスペース'}</h1><p>CSVの受付から検証、取込まで。処理の状況をひとつの画面で。</p></div>{write&&<button className="primary" onClick={()=>setOpen(true)}>＋ CSV取込を作成</button>}</div>{error&&<div className="alert" role="alert">{error}<button onClick={()=>setError('')}>閉じる</button></div>}
+  {(tab==='overview'||tab==='jobs')&&<><div className="cards">{[['待機・処理中',(summary?.queued||0)+(summary?.running||0),'並行ワーカーで自動処理'],['取込完了',summary?.completed??'—','すべての行を登録済み'],['要確認',(summary?.rejected||0)+(summary?.failed||0),'詳細から原因を確認'],['取込済みSKU',summary?.products??'—','組織ごとの商品データ']].map(([label,value,note],i)=><div className={'card card-'+i} key={label}><div>{label}<span>{['◷','✓','!','▤'][i]}</span></div><strong>{value}<small>件</small></strong><p>{note}</p></div>)}</div>{tab==='overview'&&<div className="pipeline"><div><span className="live-dot"/>処理パイプライン<small>全件成功、または全件拒否</small></div><ol><li><b>01</b>CSV受付</li><li><b>02</b>形式・値を検証</li><li><b>03</b>重複を確認</li><li><b>04</b>まとめて取込 <span>✓</span></li></ol></div>}<div className="panel"><div className="panel-heading"><div><h2>{tab==='overview'?'最近の取込':'取込一覧'}</h2><p>最新50件。処理状態は3秒ごとに更新されます。</p></div><div className="table-controls"><select aria-label="状態で絞り込み" value={filter} onChange={e=>setFilter(e.target.value)}><option value="all">すべての状態</option>{Object.entries(names).map(([k,v])=><option key={k} value={k}>{v}</option>)}</select><button className="secondary" onClick={()=>void load()} aria-label="一覧を更新">↻ 更新</button></div></div><div className="table-scroll"><table><thead><tr><th>取込名 / ID</th><th>状態</th><th>登録行数</th><th>試行回数</th><th>更新日時</th><th/></tr></thead><tbody>{displayed.map(j=><tr key={j.id}><td><button className="job-link" onClick={()=>void detail(j)}><span className="file-icon">CSV</span><span>{j.label}<small>{j.id.slice(0,8)}</small></span></button></td><td><Badge status={j.status}/></td><td>{j.status==='completed'?j.row_count.toLocaleString():'—'}<small className="inline-unit">行</small></td><td>{j.attempts}<span className="subtle"> / 3</span></td><td className="subtle">{date(j.updated_at)}</td><td><button className="text-button" onClick={()=>void detail(j)}>詳細 ↗</button></td></tr>)}</tbody></table>{displayed.length===0&&<div className="empty">表示する取込ジョブはありません。</div>}</div><div className="panel-footer"><span>{displayed.length} 件を表示</span><span className="dot"/> 自動更新</div></div><div className="bottom-note"><span>ⓘ</span><p>不備のあるCSVは、一部の行だけを取り込まず全件を拒否します。<br/><strong>商品SKUは組織内で一意</strong>です。登録済みSKUの更新・上書きは行いません。</p><a href="/openapi.json" target="_blank" rel="noreferrer">API仕様を見る ↗</a></div></>}
+  {tab==='catalog'&&<><div className="catalog-summary">登録済み <strong>{summary?.products||0} SKU</strong><span>数量×単価の合計 <b>{yen(summary?.catalog_value||'0')}</b></span></div><div className="panel table-scroll"><table><thead><tr><th>SKU</th><th>商品名</th><th>数量</th><th>単価</th></tr></thead><tbody>{products.map(p=><tr key={p.sku}><td className="mono">{p.sku}</td><td>{p.name}</td><td>{p.quantity.toLocaleString()}</td><td>{yen(String(p.unit_price))}</td></tr>)}</tbody></table>{products.length===0&&<div className="empty">登録済みの商品はありません。</div>}<div className="panel-footer">SKU順で先頭50件を表示。APIではページ指定が可能です。</div></div></>}
+  {tab==='guide'&&<div className="panel guide"><h2>3分で試す</h2><ol><li>「CSV取込を作成」からサンプルを読み込み、登録します。</li><li>取込詳細で完了・取込不可の理由と操作履歴を確認します。</li><li>利用者を切り替え、閲覧権限と組織別データ分離を確認します。</li></ol><h2>CSV仕様</h2><pre>{sample}</pre><p>UTF-8 / 最大512KiB / 1,000行。数量は1〜100,000、単価は0〜100,000,000の整数です。</p><h2>API</h2><p>Bearerキーは画面のデモ利用者IDと同じです。実データには使わないでください。</p><code>POST /api/jobs + Idempotency-Key</code><br/><code>POST /api/graphql　{'{ jobs { id label status } }'}</code><p><a href="/openapi.json">OpenAPI仕様を開く</a></p><p>クラウド配備・外部MQ・本番認証・受託実績を示すデモではありません。</p></div>}
+--- v1.0.0/tests/integration.rs
++++ v1.0.1/tests/integration.rs
+@@ -101,6 +101,97 @@
+     f.close().await;
+ }
+ 
++#[tokio::test]
++async fn review_claim_skips_locked_exhausted_job() {
++    let f = Fixture::new().await;
++    let exhausted = submit(&f.store, "review-exhausted", SAMPLE).await;
++    let ready = submit(&f.store, "review-ready-job", SAMPLE).await;
++    sqlx::query("UPDATE jobs SET status='running',attempts=3,token=$1,lease_until=clock_timestamp()-interval '1 second' WHERE id=$2")
++        .bind(Uuid::new_v4()).bind(exhausted.id).execute(&f.store.pool).await.unwrap();
++    let mut blocker = f.store.pool.begin().await.unwrap();
++    sqlx::query("SELECT id FROM jobs WHERE id=$1 FOR UPDATE")
++        .bind(exhausted.id)
++        .execute(&mut *blocker)
++        .await
++        .unwrap();
++    let started = std::time::Instant::now();
++    let result = tokio::time::timeout(std::time::Duration::from_millis(350), f.store.claim()).await;
++    let elapsed = started.elapsed();
++    blocker.rollback().await.unwrap();
++    let ready_status = f.store.get("factory-a", ready.id).await.unwrap().status;
++    println!(
++        "claim_completed={} elapsed_ms={} unrelated_ready_status={}",
++        result.is_ok(),
++        elapsed.as_millis(),
++        ready_status
++    );
++    let claimed = result
++        .as_ref()
++        .expect("claim must skip a locked exhausted job")
++        .as_ref()
++        .unwrap()
++        .as_ref()
++        .unwrap();
++    assert_eq!(claimed.id, ready.id);
++    assert_eq!(ready_status, "running");
++    assert!(f.store.claim().await.unwrap().is_none());
++    assert_eq!(
++        f.store.get("factory-a", exhausted.id).await.unwrap().status,
++        "failed"
++    );
++    let audit_count = f
++        .store
++        .audits("factory-a", exhausted.id)
++        .await
++        .unwrap()
++        .iter()
++        .filter(|a| a.action == "failed")
++        .count();
++    assert_eq!(audit_count, 1);
++    assert!(f.store.claim().await.unwrap().is_none());
++    assert_eq!(
++        f.store
++            .audits("factory-a", exhausted.id)
++            .await
++            .unwrap()
++            .iter()
++            .filter(|a| a.action == "failed")
++            .count(),
++        1
++    );
++    println!("unrelated_job_claimed_while_locked=true expired_reaped_once_after_release=true");
++    f.close().await;
++    assert!(
++        result.is_ok(),
++        "claim blocked behind a locked exhausted job instead of claiming unrelated queued work"
++    );
++}
++
++#[tokio::test]
++async fn expired_cleanup_is_bounded_and_not_repeated() {
++    let f = Fixture::new().await;
++    for i in 0..55 {
++        let j = submit(&f.store, &format!("bounded-cleanup-{i:03}"), SAMPLE).await;
++        f.store
++            .action(&manager(), j.id, "cancel", j.version)
++            .await
++            .unwrap();
++    }
++    sqlx::query("UPDATE jobs SET status='running',attempts=3,token=$1,lease_until=clock_timestamp()-interval '1 second'")
++        .bind(Uuid::new_v4()).execute(&f.store.pool).await.unwrap();
++    assert!(f.store.claim().await.unwrap().is_none());
++    assert_eq!(f.store.summary("factory-a").await.unwrap()["failed"], 50);
++    assert!(f.store.claim().await.unwrap().is_none());
++    assert_eq!(f.store.summary("factory-a").await.unwrap()["failed"], 55);
++    assert!(f.store.claim().await.unwrap().is_none());
++    let count: i64 = sqlx::query_scalar("SELECT count(*) FROM audit WHERE action='failed'")
++        .fetch_one(&f.store.pool)
++        .await
++        .unwrap();
++    assert_eq!(count, 55);
++    f.close().await;
++}
++
+ use axum::{
+     body::Body,
+     http::{Request, StatusCode},
+--- v1.0.0/web/tests/role-race.test.mjs
++++ v1.0.1/web/tests/role-race.test.mjs
+@@ -0,0 +1,42 @@
++import fs from 'node:fs/promises';
++import assert from 'node:assert/strict';
++import {build} from 'esbuild';
++import {JSDOM} from 'jsdom';
++const dom=new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>',{url:'http://localhost/'});
++globalThis.window=dom.window;globalThis.document=dom.window.document;
++Object.defineProperty(globalThis,'navigator',{value:dom.window.navigator,configurable:true});
++globalThis.HTMLElement=dom.window.HTMLElement;globalThis.IS_REACT_ACT_ENVIRONMENT=true;
++const source=(await fs.readFile('app.tsx','utf8')).replace("createRoot(document.getElementById('root')!).render(<App/>);",'export {App};');
++await build({stdin:{contents:source,resolveDir:process.cwd(),sourcefile:'app-review.tsx',loader:'tsx'},bundle:true,format:'esm',platform:'node',outfile:'.role-race-test.mjs',external:['react','react-dom/client']});
++const {App}=await import('../.role-race-test.mjs');const React=await import('react');const{createRoot}=await import('react-dom/client');
++const{act}=React;
++const log=[];let cancelled=false;let switched=false;const held=[];
++const job={id:'11111111-1111-4111-8111-111111111111',tenant:'factory-a',label:'A社だけの商品取込',status:'queued',attempts:0,version:1,row_count:0,issues:[],message:'',created_at:'2026-10-27T00:00:00Z',updated_at:'2026-10-27T00:00:00Z'};
++const summary=(a)=>({queued:a?1:0,running:0,completed:0,rejected:0,failed:0,cancelled:0,products:a?7:0,catalog_value:'0'});
++globalThis.fetch=async(url,options={})=>{
++ const token=options.headers.Authorization;const a=token==='Bearer demo-manager-a';
++ log.push({path:url,tenant:a?'A':'B',afterSwitch:switched});
++ if(options.method==='POST'){cancelled=true;return {ok:true,status:200,json:async()=>({...job,status:'cancelled',version:2})};}
++ const detail=url.includes('/jobs/'+job.id);
++ if(detail&&cancelled&&a){return new Promise((resolve,reject)=>{held.push({resolve,reject});options.signal?.addEventListener('abort',()=>reject(new DOMException('aborted','AbortError')),{once:true});});}
++ let data=url.endsWith('/summary')?summary(a):url.endsWith('/catalog')?{data:[]}:url.endsWith('/audit')?[]:detail?job:{data:a?[job]:[]};
++ return {ok:true,status:200,json:async()=>data};
++};
++const root=createRoot(document.getElementById('root'));
++const click=async(name)=>{const b=Array.from(document.querySelectorAll('button')).find(b=>b.textContent.includes(name));assert.ok(b,'button missing '+name);await act(async()=>b.dispatchEvent(new dom.window.MouseEvent('click',{bubbles:true})));};
++let result;
++try{
++ await act(async()=>root.render(React.createElement(App)));
++ await click('A社だけの商品取込');
++ await click('取込を取消');
++ assert.equal(held.length,2,'post-mutation detail and audit should be waiting');
++ const select=document.querySelector('select[aria-label="デモ利用者"]');
++ switched=true;
++ await act(async()=>{select.value='demo-manager-b';select.dispatchEvent(new dom.window.Event('change',{bubbles:true}));});
++ await act(async()=>{await Promise.resolve();await Promise.resolve();});
++ result={selectedRole:select.value,containsTenantAJob:document.body.textContent.includes('A社だけの商品取込'),oldTenantReadsAfterSwitch:log.filter(x=>x.afterSwitch&&x.tenant==='A'),requests:log};
++ console.log(JSON.stringify(result,null,2));
++ if(process.env.REVIEW_OUTPUT)await fs.writeFile(process.env.REVIEW_OUTPUT,JSON.stringify(result,null,2));
++ assert.equal(result.oldTenantReadsAfterSwitch.length,0,'old tenant started reads after role switch');
++ assert.equal(result.containsTenantAJob,false,'tenant A job was displayed after switching to tenant B');
++}finally{await act(async()=>root.unmount());dom.window.close();await fs.rm('.role-race-test.mjs',{force:true});}
+--- v1.0.0/Cargo.toml
++++ v1.0.1/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "importflow"
+-version = "1.0.0"
++version = "1.0.1"
+ edition = "2024"
+ rust-version = "1.99"
+ 
+--- v1.0.0/web/package.json
++++ v1.0.1/web/package.json
+@@ -1 +1,21 @@
+-{"name":"importflow-ui","version":"1.0.0","private":true,"type":"module","scripts":{"build":"tsc --noEmit && node build.mjs","test":"node --test tests/*.test.mjs"},"dependencies":{"react":"19.2.0","react-dom":"19.2.0"},"devDependencies":{"@types/react":"19.2.2","@types/react-dom":"19.2.2","esbuild":"0.25.11","typescript":"5.9.3"}}
++{
++  "name": "importflow-ui",
++  "version": "1.0.1",
++  "private": true,
++  "type": "module",
++  "scripts": {
++    "build": "tsc --noEmit && node build.mjs",
++    "test": "node --test tests/*.test.mjs"
++  },
++  "dependencies": {
++    "react": "19.2.0",
++    "react-dom": "19.2.0"
++  },
++  "devDependencies": {
++    "@types/react": "19.2.2",
++    "@types/react-dom": "19.2.2",
++    "esbuild": "0.25.11",
++    "typescript": "5.9.3",
++    "jsdom": "27.0.1"
++  }
++}

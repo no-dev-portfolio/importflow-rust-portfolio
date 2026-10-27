@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-27",
+  "version": "1.0.1",
+  "resolved": [
+    "IF-PR-01",
+    "IF-PR-02"
+  ],
+  "rust_passed": 27,
+  "rust_unit_property": 9,
+  "rust_postgres_integration": 18,
+  "frontend_passed": 4,
+  "target_regressions_repeated_each": 3,
+  "rust_checks_exit_code": 0,
+  "frontend_checks_exit_code": 0,
+  "ui_old_tenant_reads_after_switch": [
+    0,
+    0,
+    0
+  ],
+  "ui_old_tenant_visible_after_switch": [
+    false,
+    false,
+    false
+  ],
+  "unfiltered_audit_vulnerabilities": 1,
+  "unfiltered_audit_exit_code": 1,
+  "unfiltered_audit_note": "yank registry lookup timeout is recorded in stderr; RustSec result returned",
+  "baseline_zip_sha256": "654a8766f4d957a12207d78a090389413d7794299bd3579fed54b937ac06162b",
+  "docker_build_exit_code": 0,
+  "runtime_health_exit_code": 0,
+  "runtime_port": 9090,
+  "runtime_frontend_bytes_match": true
+}

@@ -1,0 +1,373 @@
++ cp -a /source /tmp/ui
++ cp /evidence/ui-race.mjs /tmp/ui/
++ cd /tmp/ui
++ npm ci
+
+added 9 packages, and audited 10 packages in 3s
+
+found 0 vulnerabilities
+npm notice
+npm notice New major version of npm available! 10.9.9 -> 12.2.1
+npm notice Changelog: https://github.com/npm/cli/releases/tag/v12.2.1
+npm notice To update run: npm install -g npm@12.2.1
+npm notice
++ npm install --no-save --package-lock=false jsdom@27.0.1
+npm warn deprecated whatwg-encoding@3.1.1: Use @exodus/bytes instead for a more spec-conformant and faster implementation
+
+added 47 packages, and audited 57 packages in 8s
+
+8 packages are looking for funding
+  run `npm fund` for details
+
+found 0 vulnerabilities
++ node ui-race.mjs
+{
+  "selectedRole": "demo-manager-b",
+  "containsTenantAJob": true,
+  "oldTenantReadsAfterSwitch": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": true
+    }
+  ],
+  "requests": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/cancel",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": true
+    }
+  ]
+}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: tenant A job was displayed after switching to tenant B
+
+true !== false
+
+    at file:///tmp/ui/ui-race.mjs:40:9 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.23.4
++ code=1
++ cp /evidence/ui-race-result.json /evidence/ui-race-result-1.json
++ echo ATTEMPT=1 EXIT_CODE=1
++ [ 1 -ne 1 ]
++ node ui-race.mjs
+ATTEMPT=1 EXIT_CODE=1
+{
+  "selectedRole": "demo-manager-b",
+  "containsTenantAJob": true,
+  "oldTenantReadsAfterSwitch": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": true
+    }
+  ],
+  "requests": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/cancel",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": true
+    }
+  ]
+}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: tenant A job was displayed after switching to tenant B
+
+true !== false
+
+    at file:///tmp/ui/ui-race.mjs:40:9 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.23.4
++ code=1
++ cp /evidence/ui-race-result.json /evidence/ui-race-result-2.json
++ echo ATTEMPT=2 EXIT_CODE=1
++ [ 1 -ne 1 ]
++ node ui-race.mjs
+ATTEMPT=2 EXIT_CODE=1
+{
+  "selectedRole": "demo-manager-b",
+  "containsTenantAJob": true,
+  "oldTenantReadsAfterSwitch": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": true
+    }
+  ],
+  "requests": [
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/cancel",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/jobs/11111111-1111-4111-8111-111111111111/audit",
+      "tenant": "A",
+      "afterSwitch": false
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "B",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/summary",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/jobs",
+      "tenant": "A",
+      "afterSwitch": true
+    },
+    {
+      "path": "/api/catalog",
+      "tenant": "A",
+      "afterSwitch": true
+    }
+  ]
+}
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+AssertionError [ERR_ASSERTION]: tenant A job was displayed after switching to tenant B
+
+true !== false
+
+    at file:///tmp/ui/ui-race.mjs:40:9 {
+  generatedMessage: false,
+  code: 'ERR_ASSERTION',
+  actual: true,
+  expected: false,
+  operator: 'strictEqual',
+  diff: 'simple'
+}
+
+Node.js v22.23.4
++ code=1
++ cp /evidence/ui-race-result.json /evidence/ui-race-result-3.json
+ATTEMPT=3 EXIT_CODE=1
++ echo ATTEMPT=3 EXIT_CODE=1
++ [ 1 -ne 1 ]

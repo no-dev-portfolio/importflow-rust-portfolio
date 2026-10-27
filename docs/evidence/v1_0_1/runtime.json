@@ -1,0 +1,17 @@
+{
+  "/readyz": {
+    "status": 200
+  },
+  "/openapi.json": {
+    "status": 200,
+    "version": "1.0.1"
+  },
+  "/app.js": {
+    "status": 200,
+    "sha256": "6d1c078e52a5016ed1581548bc9ed8c9e0fde142f7ff3f26c518f54c000e0b19"
+  },
+  "health": {
+    "listen_addr": "0.0.0.0:9090",
+    "exit_code": 0
+  }
+}
