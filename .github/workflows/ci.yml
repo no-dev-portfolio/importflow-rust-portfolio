@@ -1,0 +1,34 @@
+name: ImportFlow checks
+on: [push, pull_request]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-bookworm
+        env:
+          POSTGRES_DB: importflow_test
+          POSTGRES_USER: importflow
+          POSTGRES_PASSWORD: local-test-only
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U importflow -d importflow_test"
+          --health-interval 3s --health-timeout 3s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://importflow:local-test-only@localhost:5432/importflow_test?sslmode=disable
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install Rust toolchain
+        run: rustup toolchain install 1.99.1 --profile minimal --component rustfmt --component clippy && rustup default 1.99.1
+      - run: npm ci && npm run build && npm test && npm audit
+        working-directory: web
+      - run: cargo install cargo-audit --locked --version 0.22.2
+      - run: sh scripts/check.sh
+      - run: docker build --target demo -t importflow:ci .
