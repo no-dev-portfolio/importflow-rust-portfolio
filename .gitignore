@@ -1,0 +1,6 @@
+/target/
+/web/node_modules/
+.env
+.DS_Store
+*.out
+web/.role-race-test.mjs

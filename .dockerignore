@@ -1,0 +1,8 @@
+target/
+web/node_modules/
+web/dist/
+.git/
+.env
+docs/
+*.log
+web/.role-race-test.mjs
